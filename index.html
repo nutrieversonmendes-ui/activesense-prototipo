@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACTIVESENSE | Protótipo</title>
+    
+<script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-red': '#EF4444',
+                        'primary-green': '#10B981',
+                        'primary-blue': '#3B82F6',
+                        'safe': '#10B981',
+                        'warning': '#F59E0B',
+                        'danger': '#EF4444',
+                        'card-bg': '#1F2937',
+                        'text-light': '#F7FAFC',
+                        'text-muted': '#A0AEC0',
+                        'bg-app': '#100C1F',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilização base */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: '#000000';
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            min-height: 600px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            background-color: #100C1F;
+            color: #F7FAFC;
+        }
+        input, select {
+            background-color: #2D3748 !important; 
+            border-color: #4A5568 !important;
+            color: #F7FAFC !important;
+        }
+        /* CLASSE CRÍTICA PARA TROCA DE TELA */
+        .screen {
+            display: none;
+        }
+        .active-screen {
+            display: block;
+        }
+        .card {
+            background-color: #1F2937;
+        }
+        /* Animação para o ícone de sincronização */
+        @keyframes sync-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .animate-sync-spin {
+            animation: sync-spin 2s linear infinite;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- 1. Tela de Login e Cadastro (MOSTRADA POR PADRÃO) -->
+    <div id="authScreen" class="screen active-screen p-6">
+        <h1 class="text-3xl font-bold text-primary-red mb-2 text-center">ACTIVESENSE</h1>
+        <h2 class="text-xl font-medium text-text-light mb-6 text-center">LOGIN - MONITORAMENTO INTELIGENTE</h2>
+        <p class="text-text-muted mb-6 text-center">Entre ou crie sua conta para monitoramento.</p>
+
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-text-muted">Email</label>
+                <input type="email" id="email" required class="mt-1 block w-full rounded-md shadow-sm p-3 border">
+            </div>
+            <div>
+                <label for="senha" class="block text-sm font-medium text-text-muted">Senha</label>
+                <input type="password" id="senha" required class="mt-1 block w-full rounded-md shadow-sm p-3 border">
+            </div>
+            
+            <!-- NOVO: Campo de Erro de Login -->
+            <p id="loginError" class="text-danger text-sm hidden">Usuário não encontrado. Por favor, cadastre-se!</p>
+
+            <button type="button" onclick="handleLoginAttempt()" class="w-full py-3 mt-6 bg-primary-blue text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition duration-150">
+                Entrar
+            </button>
+            <button type="button" onclick="switchScreen('authScreen', 'dataEntryScreen')" class="w-full py-3 bg-primary-green text-white font-semibold rounded-lg shadow-lg hover:bg-green-700 transition duration-150">
+                Cadastrar
+            </button>
+        </form>
+    </div>
+
+    <!-- 2. Tela de Cadastro de Paciente (OCULTA por Padrão) -->
+    <div id="dataEntryScreen" class="screen p-6">
+        <h1 class="text-3xl font-bold text-primary-red mb-2 text-center">ACTIVESENSE</h1>
+        <h2 class="text-xl font-medium text-text-light mb-6 text-center">CADASTRO DO PACIENTE</h2>
+        
+        <form id="patientForm" class="space-y-4">
+            <!-- DADOS PESSOAIS E CLÍNICOS -->
+            <div><label for="nome" class="block text-sm font-medium text-text-muted">Nome Completo</label><input type="text" id="nome" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+            <div class="flex space-x-4">
+                <div class="w-1/3"><label for="idade" class="block text-sm font-medium text-text-muted">Idade (anos)</label><input type="number" id="idade" required min="1" class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+                <div class="w-1/3"><label for="altura" class="block text-sm font-medium text-text-muted">Altura (cm)</label><input type="number" id="altura" required min="50" class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+                <div class="w-1/3"><label for="peso" class="block text-sm font-medium text-text-muted">Peso (kg)</label><input type="number" id="peso" required min="1" class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+            </div>
+            <div><label for="sexo" class="block text-sm font-medium text-text-muted">Sexo</label><select id="sexo" class="mt-1 block w-full rounded-md shadow-sm p-3 border"><option value="">Selecione...</option><option>Masculino</option><option>Feminino</option></select></div>
+            <div><label for="diabetesTipo" class="block text-sm font-medium text-text-muted">Tipo de Diabetes</label><select id="diabetesTipo" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"><option value="">Selecione...</option><option>Tipo 1</option><option>Tipo 2</option><option>Gestacional</option><option>LADA (Diabetes Autoimune Latente do Adulto)</option><option>MODY (Maturity-Onset Diabetes of the Young)</option><option>Outro</option></select></div>
+            <div><label for="usaInsulina" class="block text-sm font-medium text-text-muted">Usa Insulina?</label><select id="usaInsulina" class="mt-1 block w-full rounded-md shadow-sm p-3 border"><option value="">Selecione...</option><option>Sim - Diariamente</option><option>Sim - Ocasionamente</option><option>Não</option></select></div>
+            <div><label for="modalidadesEsportivas" class="block text-sm font-medium text-text-muted">Modalidades Esportivas</label><select id="modalidadesEsportivas" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"><option value="">Selecione...</option><option>Caminhada</option><option>Corrida</option><option>Natação</option><option>Ciclismo</option><option>Musculação</option><option>Yoga / Pilates</option><option>Outro</option></select></div>
+            
+            <!-- Patologias e Alergias -->
+            <div><label for="patologiasPrevias" class="block text-sm font-medium text-text-muted">Patologias Prévias (Outras)</label><input type="text" id="patologiasPrevias" class="mt-1 block w-full rounded-md shadow-sm p-3 border" placeholder="Ex: Hipertensão, Asma"></div>
+            <div><label for="alergias" class="block text-sm font-medium text-text-muted">Alergias a Medicamentos</label><input type="text" id="alergias" class="mt-1 block w-full rounded-md shadow-sm p-3 border" placeholder="Ex: Penicilina, Insulina X"></div>
+
+            <div><label for="convenioMedico" class="block text-sm font-medium text-text-muted">Convênio Médico</label><input type="text" id="convenioMedico" class="mt-1 block w-full rounded-md shadow-sm p-3 border" placeholder="Nome do Convênio"></div>
+            
+            <!-- Limites de Alerta -->
+            <div class="card p-4 rounded-xl mt-6 border-l-4 border-warning space-y-3">
+                <h3 class="text-lg font-bold text-warning">Limites de Alerta (Smartwatch)</h3>
+                <p class="text-xs text-text-muted">Defina os valores que disparam o alerta de emergência:</p>
+                
+                <div>
+                    <label for="spo2Min" class="block text-sm font-medium text-text-muted">Saturação O₂ Mínima (%)</label>
+                    <input type="number" id="spo2Min" required min="50" max="98" class="mt-1 block w-full rounded-md shadow-sm p-3 border" placeholder="Ex: 90" value="88">
+                </div>
+                <div class="flex space-x-4">
+                    <div class="w-1/2">
+                        <label for="hrMin" class="block text-sm font-medium text-text-muted">FC Mínima (bpm)</label>
+                        <input type="number" id="hrMin" required min="30" max="50" class="mt-1 block w-full rounded-md shadow-sm p-3 border" placeholder="Ex: 40" value="40">
+                    </div>
+                    <div class="w-1/2">
+                        <label for="hrMax" class="block text-sm font-medium text-text-muted">FC Máxima (bpm)</label>
+                        <input type="number" id="hrMax" required min="120" max="220" class="mt-1 block w-full rounded-md shadow-sm p-3 border" placeholder="Ex: 170" value="170">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contatos de Emergência -->
+            <div id="emergencyContactsContainer" class="space-y-4">
+                <div class="flex justify-between items-center mt-6">
+                    <h3 class="text-lg font-bold text-primary-blue">Contatos de Emergência</h3>
+                    <button type="button" onclick="addEmergencyContact()" class="bg-primary-red text-white w-8 h-8 rounded-full shadow-lg hover:bg-red-700 transition duration-150 text-xl font-bold">+</button>
+                </div>
+                <!-- Contato Padrão -->
+                <div id="contact-0" class="p-4 card rounded-lg space-y-2 border-l-4 border-primary-red">
+                    <div><label for="contatoNome_0" class="block text-sm font-medium text-text-muted">Nome do Contato</label><input type="text" id="contatoNome_0" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+                    <div><label for="contatoParentesco_0" class="block text-sm font-medium text-text-muted">Parentesco</label><select id="contatoParentesco_0" class="mt-1 block w-full rounded-md shadow-sm p-3 border"><option value="">Selecione...</option><option>Cônjuge</option><option>Filho(a)</option><option>Pai/Mãe</option><option>Irmão(ã)</option><option>Amigo(a)</option><option>Outro</option></select></div>
+                    <div><label for="contatoTelefone_0" class="block text-sm font-medium text-text-muted">Telefone</label><input type="tel" id="contatoTelefone_0" required placeholder="(XX) XXXXX-XXXX" class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+                </div>
+            </div>
+
+            <button type="button" onclick="validateAndSwitch('dataEntryScreen', 'profileSummaryScreen')" class="w-full py-3 mt-6 bg-primary-red text-white font-semibold rounded-lg shadow-lg">
+                Salvar Informações
+            </button>
+        </form>
+    </div>
+    
+    <!-- 3. Tela de Perfil do Paciente (Sumário) -->
+    <div id="profileSummaryScreen" class="screen p-6">
+        <h1 class="text-3xl font-bold text-primary-red mb-2 text-center">ACTIVESENSE</h1>
+        <h2 class="text-xl font-medium text-text-light mb-6 text-center">PERFIL DO PACIENTE</h2>
+        
+        <div class="flex justify-between items-center mb-6 card p-4 rounded-xl border-l-4 border-primary-blue">
+            <h3 id="summaryPatientName" class="text-2xl font-bold text-text-light">[Nome do Paciente]</h3>
+            <!-- Ícone de Edição (Lápis) -->
+            <button type="button" onclick="switchScreen('profileSummaryScreen', 'dataEntryScreen')" class="text-primary-blue hover:text-primary-red transition duration-150">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+            </button>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Informações Básicas -->
+            <div class="card p-4 rounded-xl border-l-4 border-primary-green">
+                <h4 class="text-lg font-bold mb-2 text-primary-green">Dados Clínicos e Físicos</h4>
+                <div id="summaryPatientData" class="text-sm space-y-1 text-text-muted">
+                    <p>Carregando dados...</p>
+                </div>
+            </div>
+
+            <!-- Limites de Alerta (Sumário) -->
+             <div class="card p-4 rounded-xl border-l-4 border-warning">
+                <h4 class="text-lg font-bold mb-2 text-warning">Limites de Alerta</h4>
+                <div id="summaryAlertLimits" class="text-sm space-y-1 text-text-muted">
+                    <p>Carregando limites...</p>
+                </div>
+            </div>
+
+            <!-- Contatos de Emergência -->
+            <div class="card p-4 rounded-xl border-l-4 border-primary-red">
+                <h4 class="text-lg font-bold mb-2 text-primary-red">Contatos de Emergência</h4>
+                <div id="summaryContacts" class="text-sm space-y-1 text-text-muted">
+                    <p>Carregando contatos...</p>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" onclick="startMonitoringFlow()" class="w-full py-3 mt-8 bg-primary-red text-white font-semibold rounded-lg shadow-lg hover:bg-red-600 transition duration-150">
+            Iniciar Monitoramento
+        </button>
+    </div>
+
+    <!-- 4. Tela de Dashboard (OCULTA por Padrão) -->
+    <div id="dashboardScreen" class="screen p-6">
+        <h1 class="text-2xl font-bold text-primary-red text-center">ACTIVESENSE</h1>
+        <h2 class="text-lg font-medium text-text-muted text-center mb-4">Monitoramento Inteligente</h2>
+        
+        <!-- CARD: Status da Sincronização do Smartwatch -->
+        <div id="smartwatchStatusCard" class="card p-4 rounded-xl mb-6 border-l-4 border-primary-blue">
+            <p class="text-sm text-text-muted">Status do Smartwatch</p>
+            <div class="flex items-center justify-center space-x-2 mt-2">
+                <svg id="syncIcon" class="w-6 h-6 text-primary-blue animate-sync-spin" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0110.802 7.292c-.174.407-.384.787-.624 1.144A1 1 0 0112 15h-3a1 1 0 01-.707-1.707l1.414-1.414a1 1 0 011.414 0c.348.348.653.695.918 1.05a5.002 5.002 0 00-7.792-5.746l-.106.318A1 1 0 015 6V3a1 1 0 011-1h-2zM15 17a1 1 0 00-1-1v-2.101a7.002 7.002 0 00-10.802-7.292c.174-.407.384-.787.624-1.144A1 1 0 008 5h3a1 1 0 00.707 1.707l-1.414 1.414a1 1 0 00-1.414 0c-.348-.348-.653-.695-.918-1.05a5.002 5.002 0 017.792 5.746l.106-.318A1 1 0 0015 14v3a1 1 0 001-1z" clip-rule="evenodd" />
+                </svg>
+                <span id="syncStatusMessage" class="text-xl font-extrabold text-primary-blue">BUSCANDO...</span>
+            </div>
+        </div>
+
+        <!-- Métrica Simulado -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="card p-4 rounded-xl text-center border-l-4 border-primary-red">
+                <p class="text-sm text-text-muted">Frequência Cardíaca</p>
+                <p id="hrValue" class="text-4xl font-extrabold text-primary-red mt-2">75<span class="text-lg text-text-muted">bpm</span></p>
+            </div>
+            <div class="card p-4 rounded-xl text-center border-l-4 border-primary-blue">
+                <p id="spo2Label" class="text-sm text-text-muted">Saturação O₂</p>
+                <p id="spo2Value" class="text-4xl font-extrabold text-primary-blue mt-2">98<span class="text-lg text-text-muted">%</span></p>
+            </div>
+        </div>
+
+        <!-- Status de Emergência e Alerta -->
+        <div id="statusBox" class="p-4 mb-6 rounded-xl text-center shadow-lg bg-primary-green">
+            <p class="text-lg font-bold">STATUS ATUAL</p>
+            <p id="statusMessage" class="text-2xl font-extrabold mt-1">NORMAL</p>
+        </div>
+
+        <!-- Detalhes da Emergência (Relatório de IA e WhatsApp Sim) - Ocultos por padrão -->
+        <div id="emergencyDetails" class="screen">
+            <!-- Contatos Notificados (Lista Dinâmica) -->
+            <div class="card p-4 rounded-xl mb-6 border-l-4 border-primary-green">
+                <h3 class="text-lg font-bold mb-2 text-primary-green">Notificações Enviadas</h3>
+                <div id="notifiedContactsList" class="text-sm text-text-muted">
+                    <!-- Lista de contatos notificados será inserida aqui pelo JS -->
+                </div>
+            </div>
+
+            <!-- Relatório de Emergência Simulado (IA) -->
+            <div class="card p-4 rounded-xl mb-6 border-l-4 border-warning">
+                <h3 class="text-lg font-bold mb-2 text-warning">Relatório de IA para Resgate</h3>
+                <p id="emergencyReport" class="text-sm text-text-muted italic">
+                    Hipótese: Hipoglicemia grave e inconsciência. Paciente: [Nome do Paciente] (Diabetes [Tipo], usa [Insulina]). Sinais vitais críticos: FC 38 bpm, SpO₂ 86%. Localização: Rua Exemplo, 123. Convênio: [Nome do Convênio].
+                </p>
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <!-- Botão que aparece no estado NORMAL -->
+            <button id="triggerBtn" type="button" onclick="triggerEmergency()" class="py-3 px-8 bg-danger text-white font-semibold rounded-lg shadow-lg hover:bg-red-600 transition duration-150">
+                SIMULAR EMERGÊNCIA (Ativar Alerta Crítico)
+            </button>
+            
+            <!-- Botão que aparece no estado de ALERTA -->
+            <button id="resetBtn" type="button" onclick="resetStatus()" class="py-3 px-8 bg-primary-green text-white font-semibold rounded-lg shadow-lg hover:bg-green-700 transition duration-150 screen">
+                PARAR ALERTA / REVERTER STATUS (Voltar ao Login)
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let contactCount = 1;
+    let patientData = {}; // Variável para armazenar dados do paciente
+
+    // Função para simular o erro de Login
+    function handleLoginAttempt() {
+        const email = document.getElementById('email').value;
+        const senha = document.getElementById('senha').value;
+        const errorElement = document.getElementById('loginError');
+
+        // Simula a falha de login se os campos estiverem preenchidos (assumindo que o perfil não existe)
+        if (email && senha) {
+            errorElement.innerText = 'Usuário não encontrado. Por favor, utilize o botão "Cadastrar" para criar seu perfil.';
+            errorElement.classList.remove('hidden');
+            // Mantém na tela de login, sugerindo o cadastro
+        } else {
+            // Se os campos estiverem vazios, apenas usa a validação HTML5
+            document.getElementById('loginForm').reportValidity();
+        }
+    }
+
+
+    // Função para trocar a visibilidade das telas
+    function switchScreen(currentId, nextId) {
+        // Oculta a mensagem de erro ao trocar de tela
+        document.getElementById('loginError').classList.add('hidden');
+        
+        if (currentId === 'dashboardScreen') {
+             resetStatus();
+        }
+        
+        document.getElementById(currentId).classList.remove('active-screen');
+        document.getElementById(currentId).classList.add('screen');
+        document.getElementById(nextId).classList.remove('screen');
+        document.getElementById(nextId).classList.add('active-screen');
+    }
+
+    // Função para adicionar novo contato de emergência (Chamada pelo botão '+')
+    function addEmergencyContact() {
+        const container = document.getElementById('emergencyContactsContainer');
+        const newContactHtml = `
+            <div id="contact-${contactCount}" class="p-4 card rounded-lg space-y-2 border-l-4 border-primary-blue mt-4">
+                <div class="text-right">
+                    <button type="button" onclick="removeEmergencyContact('contact-${contactCount}')" class="text-danger text-lg font-bold">&times;</button>
+                </div>
+                <div><label for="contatoNome_${contactCount}" class="block text-sm font-medium text-text-muted">Nome do Contato (${contactCount + 1}º)</label><input type="text" id="contatoNome_${contactCount}" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+                <div><label for="contatoParentesco_${contactCount}" class="block text-sm font-medium text-text-muted">Parentesco</label><select id="contatoParentesco_${contactCount}" class="mt-1 block w-full rounded-md shadow-sm p-3 border"><option value="">Selecione...</option><option>Cônjuge</option><option>Filho(a)</option><option>Pai/Mãe</option><option>Irmão(ã)</option><option>Amigo(a)</option><option>Outro</option></select></div>
+                <div><label for="contatoTelefone_${contactCount}" class="block text-sm font-medium text-text-muted">Telefone</label><input type="tel" id="contatoTelefone_${contactCount}" required placeholder="(XX) XXXXX-XXXX" class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', newContactHtml);
+        contactCount++;
+    }
+
+    // Função para remover contato (Adicionada ao botão 'X' no HTML gerado)
+    function removeEmergencyContact(id) {
+        const element = document.getElementById(id);
+        if (element) element.remove();
+    }
+
+    // Função para coletar dados do paciente e contatos
+    function collectPatientData() {
+        patientData = {
+            nome: document.getElementById('nome').value || '[Não informado]',
+            idade: document.getElementById('idade').value || '[Não informado]',
+            altura: document.getElementById('altura').value || '[Não informado]',
+            peso: document.getElementById('peso').value || '[Não informado]',
+            sexo: document.getElementById('sexo').value || '[Não informado]',
+            diabetesTipo: document.getElementById('diabetesTipo').value || '[Não informado]',
+            usaInsulina: document.getElementById('usaInsulina').value || '[Não informado]',
+            modalidadesEsportivas: document.getElementById('modalidadesEsportivas').value || '[Não informado]',
+            // NOVOS CAMPOS
+            patologiasPrevias: document.getElementById('patologiasPrevias').value || 'Nenhuma',
+            alergias: document.getElementById('alergias').value || 'Nenhuma',
+            convenioMedico: document.getElementById('convenioMedico').value || '[Não informado]',
+            // CAMPOS DE ALERTA
+            spo2Min: document.getElementById('spo2Min').value || '88',
+            hrMin: document.getElementById('hrMin').value || '40',
+            hrMax: document.getElementById('hrMax').value || '170',
+            contatos: []
+        };
+
+        const contactDivs = document.querySelectorAll('#emergencyContactsContainer > div[id^="contact-"]');
+        contactDivs.forEach((div) => {
+            
+            // Corrige o ID prefixado para os elementos dinâmicos
+            const nomeElement = div.querySelector(`input[id^="contatoNome_"]`);
+            const parentescoElement = div.querySelector(`select[id^="contatoParentesco_"]`);
+            const telefoneElement = div.querySelector(`input[id^="contatoTelefone_"]`);
+
+            if (nomeElement && telefoneElement) {
+                patientData.contatos.push({
+                    nome: nomeElement.value || 'Contato Desconhecido',
+                    parentesco: parentescoElement ? (parentescoElement.value || 'Não informado') : 'Não informado',
+                    telefone: telefoneElement.value || 'Não informado'
+                });
+            }
+        });
+    }
+
+    // NOVA FUNÇÃO: Atualiza a tela de Sumário do Perfil
+    function updateProfileSummary() {
+        // Garantir que os dados foram coletados antes de atualizar
+        collectPatientData(); 
+
+        // Dados Básicos do Paciente
+        const basicDataHtml = `
+            <p><strong>Idade/Sexo:</strong> ${patientData.idade} anos / ${patientData.sexo}</p>
+            <p><strong>Altura/Peso:</strong> ${patientData.altura} cm / ${patientData.peso} kg</p>
+            <p><strong>Tipo de Diabetes:</strong> ${patientData.diabetesTipo}</p>
+            <p><strong>Usa Insulina:</strong> ${patientData.usaInsulina}</p>
+            <p><strong>Esportes:</strong> ${patientData.modalidadesEsportivas}</p>
+            <p><strong>Patologias Prévias:</strong> ${patientData.patologiasPrevias}</p>
+            <p><strong>Alergias:</strong> <span class="text-danger font-bold">${patientData.alergias}</span></p>
+            <p><strong>Convênio Médico:</strong> ${patientData.convenioMedico}</p>
+        `;
+        document.getElementById('summaryPatientName').innerText = patientData.nome;
+        document.getElementById('summaryPatientData').innerHTML = basicDataHtml;
+
+        // Limites de Alerta
+        const alertLimitsHtml = `
+            <p><strong>SpO₂ Mínima:</strong> ${patientData.spo2Min} %</p>
+            <p><strong>FC Mínima:</strong> ${patientData.hrMin} bpm</p>
+            <p><strong>FC Máxima:</strong> ${patientData.hrMax} bpm</p>
+        `;
+        document.getElementById('summaryAlertLimits').innerHTML = alertLimitsHtml;
+
+        // Contatos de Emergência
+        let contactsHtml = patientData.contatos.map(c => `
+            <div class="mt-2 p-2 rounded-md bg-gray-800 border-l-2 border-primary-red">
+                <p><strong>${c.nome}</strong> (${c.parentesco})</p>
+                <p class="text-xs text-text-muted">Telefone: ${c.telefone}</p>
+            </div>
+        `).join('');
+
+        if (patientData.contatos.length === 0) {
+            contactsHtml = '<p class="text-warning">Nenhum contato de emergência cadastrado.</p>';
+        }
+        document.getElementById('summaryContacts').innerHTML = contactsHtml;
+    }
+
+
+    // Valida o formulário antes de ir para o dashboard (simulado)
+    function validateAndSwitch(currentId, nextId) {
+        const form = document.querySelector(`#${currentId} form`);
+        if (form.checkValidity()) {
+            collectPatientData();
+            if (nextId === 'profileSummaryScreen') {
+                updateProfileSummary(); // Atualiza a nova tela antes de exibir
+            }
+            // Não atualiza o dashboard aqui, pois será feito na função de pareamento
+            switchScreen(currentId, nextId);
+        } else {
+            form.reportValidity(); // Mostra as mensagens de erro do HTML5
+        }
+    }
+    
+    // NOVA FUNÇÃO: Gerencia o fluxo de pareamento e monitoramento
+    function startMonitoringFlow() {
+        switchScreen('profileSummaryScreen', 'dashboardScreen');
+        
+        const statusMsg = document.getElementById('syncStatusMessage');
+        const syncIcon = document.getElementById('syncIcon');
+        const hrElement = document.getElementById('hrValue');
+        const spo2Element = document.getElementById('spo2Value');
+
+        // 1. Inicia a Busca (Imediatamente)
+        statusMsg.innerText = 'BUSCANDO...';
+        syncIcon.classList.remove('text-danger', 'text-primary-green');
+        syncIcon.classList.add('text-primary-blue', 'animate-sync-spin');
+        
+        // Limpa métricas até conectar
+        hrElement.innerText = '--';
+        spo2Element.innerText = '--';
+
+        // 2. Simula o Pareamento (Após 1.5s)
+        setTimeout(() => {
+            statusMsg.innerText = 'PAREANDO...';
+        }, 1500);
+
+        // 3. Simula a Conexão (Após 3.5s)
+        setTimeout(() => {
+            syncIcon.classList.remove('animate-sync-spin');
+            syncIcon.classList.add('text-primary-green');
+            syncIcon.innerHTML = `<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />`; // Ícone de check
+            statusMsg.innerText = 'CONECTADO';
+            
+            // Inicia o envio de métricas simuladas
+            hrElement.innerText = '75';
+            spo2Element.innerText = '98';
+
+            updateDashboardData(); // Atualiza o relatório de emergência com os dados do paciente
+            
+        }, 3500);
+    }
+
+
+    // Preenche o relatório de emergência simulado
+    function updateDashboardData() {
+        const nome = patientData.nome;
+        const diabetes = patientData.diabetesTipo;
+        const insulina = patientData.usaInsulina;
+        const convenio = patientData.convenioMedico;
+        const patologias = patientData.patologiasPrevias;
+        const alergias = patientData.alergias;
+
+        // Atualiza Relatório de Emergência
+        const reportText = `Hipótese: Hipoglicemia grave e inconsciência. Sinais vitais CRÍTICOS (FC 38 bpm, SpO₂ 86%). Dados do Paciente: ${nome} (Diabetes ${diabetes}, Insulina: ${insulina}, Convênio: ${convenio}). Patologias Prévias: ${patologias}. Alergias: ${alergias}. Localização: Rua Exemplo, 123.`;
+        document.getElementById('emergencyReport').innerText = reportText;
+
+        // Atualiza Contatos Notificados
+        const listContainer = document.getElementById('notifiedContactsList');
+        listContainer.innerHTML = '';
+        
+        // 1. Notificação para SAMU/Bombeiros (Fixa)
+        const itemSamu = document.createElement('p');
+        itemSamu.className = 'text-white font-bold mt-1 mb-2 border-b border-primary-green pb-1';
+        itemSamu.innerHTML = '🚨 **SAMU / CORPO DE BOMBEIROS (LIGAÇÃO)**';
+        listContainer.appendChild(itemSamu);
+
+        // 2. Notificações para Contatos
+        patientData.contatos.forEach(contato => {
+            const item = document.createElement('p');
+            item.className = 'text-white font-medium mt-1';
+            item.innerHTML = `✅ ${contato.nome} (${contato.parentesco}) - Tel: ${contato.telefone}`;
+            listContainer.appendChild(item);
+        });
+        
+        if (patientData.contatos.length === 0) {
+             listContainer.innerHTML += '<p class="text-warning mt-2">Nenhum contato familiar cadastrado. Apenas SAMU acionado.</p>';
+        }
+    }
+
+
+    // Função para acionar o estado de Emergência
+    function triggerEmergency() {
+        // 1. Métrica Crítica (Valores fixos para simulação)
+        // Estes valores *simulam* a queda abaixo dos limites customizados
+        document.getElementById('hrValue').innerText = '38';
+        document.getElementById('spo2Value').innerText = '86';
+        
+        // 2. Status Crítico (Cores/Mensagem)
+        document.getElementById('statusBox').classList.remove('bg-primary-green');
+        document.getElementById('statusBox').classList.add('bg-danger');
+        document.getElementById('statusMessage').innerText = 'ALERTA CRÍTICO ATIVO';
+        
+        // 3. Exibir Detalhes da Emergência
+        document.getElementById('emergencyDetails').classList.remove('screen');
+        
+        // 4. Trocar Botões
+        document.getElementById('triggerBtn').classList.add('screen');
+        document.getElementById('resetBtn').classList.remove('screen');
+    }
+
+    // Função para reverter o estado e voltar ao Login
+    function resetStatus() {
+        // 1. Métrica Normal
+        document.getElementById('hrValue').innerText = '75';
+        document.getElementById('spo2Value').innerText = '98';
+        
+        // 2. Status Normal
+        document.getElementById('statusBox').classList.remove('bg-danger');
+        document.getElementById('statusBox').classList.add('bg-primary-green');
+        document.getElementById('statusMessage').innerText = 'NORMAL';
+        
+        // 3. Ocultar Detalhes da Emergência
+        document.getElementById('emergencyDetails').classList.add('screen');
+        
+        // 4. Trocar Botões
+        document.getElementById('triggerBtn').classList.remove('screen');
+        document.getElementById('resetBtn').classList.add('screen');
+        
+        // Reseta o status da sincronização para o padrão
+        const statusMsg = document.getElementById('syncStatusMessage');
+        const syncIcon = document.getElementById('syncIcon');
+        syncIcon.classList.remove('animate-sync-spin', 'text-primary-green', 'text-danger');
+        syncIcon.classList.add('text-primary-blue');
+        syncIcon.innerHTML = `<path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0110.802 7.292c-.174.407-.384.787-.624 1.144A1 1 0 0112 15h-3a1 1 0 01-.707-1.707l1.414-1.414a1 1 0 011.414 0c-.348-.348-.653-.695-.918-1.05a5.002 5.002 0 00-7.792-5.746l-.106.318A1 1 0 015 6V3a1 1 0 011-1h-2zM15 17a1 1 0 00-1-1v-2.101a7.002 7.002 0 00-10.802-7.292c.174-.407.384-.787.624-1.144A1 1 0 008 5h3a1 1 0 00.707 1.707l-1.414 1.414a1 1 0 00-1.414 0c-.348-.348-.653-.695-.918-1.05a5.002 5.002 0 017.792 5.746l.106-.318A1 1 0 0015 14v3a1 1 0 001-1z" clip-rule="evenodd" />`; // Ícone de sincronização
+        statusMsg.innerText = 'BUSCANDO...';
+        
+        // 5. Navegar de volta ao Login
+        switchScreen('dashboardScreen', 'authScreen');
+    }
+</script>
+
+</body>
+</html>
