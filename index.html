@@ -21,6 +21,8 @@
                         'text-light': '#F7FAFC',
                         'text-muted': '#A0AEC0',
                         'bg-app': '#100C1F',
+                        'success-bg': '#D1FAE5', // Light green background for success message
+                        'success-text': '#065F46', // Dark green text
                     },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
@@ -49,6 +51,7 @@
             box-shadow: 0 0 40px rgba(0,0,0,0.8);
             background-color: #100C1F;
             color: #F7FAFC;
+            position: relative;
         }
         input, select {
             background-color: #2D3748 !important; 
@@ -73,6 +76,28 @@
         .animate-sync-spin {
             animation: sync-spin 2s linear infinite;
         }
+        /* Estilos do Modal de Pareamento */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            width: 90%;
+            max-width: 350px;
+            background-color: #1F2937;
+            padding: 24px;
+            border-radius: 12px;
+            color: #F7FAFC;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -85,6 +110,11 @@
         <h2 class="text-xl font-medium text-text-light mb-6 text-center">LOGIN - MONITORAMENTO INTELIGENTE</h2>
         <p class="text-text-muted mb-6 text-center">Entre ou crie sua conta para monitoramento.</p>
 
+        <!-- NOVO: Mensagem de Sucesso de Cadastro -->
+        <div id="cadastroSuccess" class="hidden p-3 mb-4 rounded-lg bg-success-bg text-success-text text-center">
+            Cadastro realizado com sucesso! Faça login abaixo.
+        </div>
+
         <form id="loginForm" class="space-y-4">
             <div>
                 <label for="email" class="block text-sm font-medium text-text-muted">Email</label>
@@ -96,7 +126,7 @@
             </div>
             
             <!-- NOVO: Campo de Erro de Login -->
-            <p id="loginError" class="text-danger text-sm hidden">Usuário não encontrado. Por favor, cadastre-se!</p>
+            <p id="loginError" class="text-danger text-sm hidden">Usuário não encontrado. Por favor, utilize o botão "Cadastrar" para criar seu perfil.</p>
 
             <button type="button" onclick="handleLoginAttempt()" class="w-full py-3 mt-6 bg-primary-blue text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition duration-150">
                 Entrar
@@ -107,13 +137,19 @@
         </form>
     </div>
 
-    <!-- 2. Tela de Cadastro de Paciente (OCULTA por Padrão) -->
+    <!-- 2. Tela de Cadastro de Paciente (OCULTA por PadrÃO) -->
     <div id="dataEntryScreen" class="screen p-6">
         <h1 class="text-3xl font-bold text-primary-red mb-2 text-center">ACTIVESENSE</h1>
         <h2 class="text-xl font-medium text-text-light mb-6 text-center">CADASTRO DO PACIENTE</h2>
         
         <form id="patientForm" class="space-y-4">
+            <!-- CAMPOS DE LOGIN/CADASTRO FLUIDOS -->
+             <div><label for="cadastroEmail" class="block text-sm font-medium text-text-muted">Email de Acesso</label><input type="email" id="cadastroEmail" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+             <div><label for="cadastroSenha" class="block text-sm font-medium text-text-muted">Senha de Acesso</label><input type="password" id="cadastroSenha" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+
+
             <!-- DADOS PESSOAIS E CLÍNICOS -->
+            <div class="pt-4 border-t border-gray-700"></div>
             <div><label for="nome" class="block text-sm font-medium text-text-muted">Nome Completo</label><input type="text" id="nome" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
             <div class="flex space-x-4">
                 <div class="w-1/3"><label for="idade" class="block text-sm font-medium text-text-muted">Idade (anos)</label><input type="number" id="idade" required min="1" class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
@@ -156,17 +192,33 @@
             <div id="emergencyContactsContainer" class="space-y-4">
                 <div class="flex justify-between items-center mt-6">
                     <h3 class="text-lg font-bold text-primary-blue">Contatos de Emergência</h3>
+                    <!-- BOTÃO + RESTAURADO FORA DA DIV DO PRIMEIRO CONTATO -->
                     <button type="button" onclick="addEmergencyContact()" class="bg-primary-red text-white w-8 h-8 rounded-full shadow-lg hover:bg-red-700 transition duration-150 text-xl font-bold">+</button>
                 </div>
-                <!-- Contato Padrão -->
-                <div id="contact-0" class="p-4 card rounded-lg space-y-2 border-l-4 border-primary-red">
-                    <div><label for="contatoNome_0" class="block text-sm font-medium text-text-muted">Nome do Contato</label><input type="text" id="contatoNome_0" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
-                    <div><label for="contatoParentesco_0" class="block text-sm font-medium text-text-muted">Parentesco</label><select id="contatoParentesco_0" class="mt-1 block w-full rounded-md shadow-sm p-3 border"><option value="">Selecione...</option><option>Cônjuge</option><option>Filho(a)</option><option>Pai/Mãe</option><option>Irmão(ã)</option><option>Amigo(a)</option><option>Outro</option></select></div>
-                    <div><label for="contatoTelefone_0" class="block text-sm font-medium text-text-muted">Telefone</label><input type="tel" id="contatoTelefone_0" required placeholder="(XX) XXXXX-XXXX" class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+                
+                <!-- Contatos (Container de todos os contatos) -->
+                <div id="contactsList">
+                    <!-- Contato Padrão 0 -->
+                    <div id="contact-0" class="p-4 card rounded-lg space-y-2 border-l-4 border-primary-red">
+                        <div><label for="contatoNome_0" class="block text-sm font-medium text-text-muted">Nome do Contato</label><input type="text" id="contatoNome_0" required class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+                        <div><label for="contatoParentesco_0" class="block text-sm font-medium text-text-muted">Parentesco</label><select id="contatoParentesco_0" class="mt-1 block w-full rounded-md shadow-sm p-3 border"><option value="">Selecione...</option><option>Cônjuge</option><option>Filho(a)</option><option>Pai/Mãe</option><option>Irmão(ã)</option><option>Amigo(a)</option><option>Outro</option></select></div>
+                        <div><label for="contatoTelefone_0" class="block text-sm font-medium text-text-muted">Telefone</label><input type="tel" id="contatoTelefone_0" required placeholder="(XX) XXXXX-XXXX" class="mt-1 block w-full rounded-md shadow-sm p-3 border"></div>
+                    </div>
                 </div>
             </div>
 
-            <button type="button" onclick="validateAndSwitch('dataEntryScreen', 'profileSummaryScreen')" class="w-full py-3 mt-6 bg-primary-red text-white font-semibold rounded-lg shadow-lg">
+            <!-- NOVO: Checkbox Li e Concordo -->
+            <div class="flex items-start mt-6 pt-4 border-t border-gray-700">
+                <div class="flex items-center h-5">
+                    <input id="termos" name="termos" type="checkbox" required class="focus:ring-primary-blue h-4 w-4 text-primary-blue border-gray-300 rounded bg-card-bg">
+                </div>
+                <div class="ml-3 text-sm">
+                    <label for="termos" class="font-medium text-text-muted">Li e concordo com os <span class="text-primary-blue hover:text-blue-400 cursor-pointer">Termos de Serviço</span> e <span class="text-primary-blue hover:text-blue-400 cursor-pointer">Política de Privacidade</span>.</label>
+                </div>
+            </div>
+
+
+            <button type="button" onclick="validateAndSwitchCadastro()" class="w-full py-3 mt-6 bg-primary-red text-white font-semibold rounded-lg shadow-lg">
                 Salvar Informações
             </button>
         </form>
@@ -211,12 +263,12 @@
             </div>
         </div>
 
-        <button type="button" onclick="startMonitoringFlow()" class="w-full py-3 mt-8 bg-primary-red text-white font-semibold rounded-lg shadow-lg hover:bg-red-600 transition duration-150">
+        <button type="button" onclick="startPairingSimulation()" class="w-full py-3 mt-8 bg-primary-red text-white font-semibold rounded-lg shadow-lg hover:bg-red-600 transition duration-150">
             Iniciar Monitoramento
         </button>
     </div>
 
-    <!-- 4. Tela de Dashboard (OCULTA por Padrão) -->
+    <!-- 4. Tela de Dashboard (OCULTA por PadrÃO) -->
     <div id="dashboardScreen" class="screen p-6">
         <h1 class="text-2xl font-bold text-primary-red text-center">ACTIVESENSE</h1>
         <h2 class="text-lg font-medium text-text-muted text-center mb-4">Monitoramento Inteligente</h2>
@@ -225,10 +277,10 @@
         <div id="smartwatchStatusCard" class="card p-4 rounded-xl mb-6 border-l-4 border-primary-blue">
             <p class="text-sm text-text-muted">Status do Smartwatch</p>
             <div class="flex items-center justify-center space-x-2 mt-2">
-                <svg id="syncIcon" class="w-6 h-6 text-primary-blue animate-sync-spin" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0110.802 7.292c-.174.407-.384.787-.624 1.144A1 1 0 0112 15h-3a1 1 0 01-.707-1.707l1.414-1.414a1 1 0 011.414 0c.348.348.653.695.918 1.05a5.002 5.002 0 00-7.792-5.746l-.106.318A1 1 0 015 6V3a1 1 0 011-1h-2zM15 17a1 1 0 00-1-1v-2.101a7.002 7.002 0 00-10.802-7.292c.174-.407.384-.787.624-1.144A1 1 0 008 5h3a1 1 0 00.707 1.707l-1.414 1.414a1 1 0 00-1.414 0c-.348-.348-.653-.695-.918-1.05a5.002 5.002 0 017.792 5.746l.106-.318A1 1 0 0015 14v3a1 1 0 001-1z" clip-rule="evenodd" />
+                <svg id="syncIcon" class="w-6 h-6 text-primary-blue" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0110.802 7.292c-.174.407-.384.787-.624 1.144A1 1 0 0112 15h-3a1 1 0 01-.707-1.707l1.414-1.414a1 1 0 011.414 0c-.348.348.653.695.918 1.05a5.002 5.002 0 00-7.792-5.746l-.106.318A1 1 0 015 6V3a1 1 0 011-1h-2zM15 17a1 1 0 00-1-1v-2.101a7.002 7.002 0 00-10.802-7.292c.174-.407.384-.787.624-1.144A1 1 0 008 5h3a1 1 0 00.707 1.707l-1.414 1.414a1 1 0 00-1.414 0c-.348-.348-.653-.695-.918-1.05a5.002 5.002 0 017.792 5.746l.106-.318A1 1 0 0015 14v3a1 1 0 001-1z" clip-rule="evenodd" />
                 </svg>
-                <span id="syncStatusMessage" class="text-xl font-extrabold text-primary-blue">BUSCANDO...</span>
+                <span id="syncStatusMessage" class="text-xl font-extrabold text-primary-blue">DESCONECTADO</span>
             </div>
         </div>
 
@@ -236,11 +288,11 @@
         <div class="grid grid-cols-2 gap-4 mb-6">
             <div class="card p-4 rounded-xl text-center border-l-4 border-primary-red">
                 <p class="text-sm text-text-muted">Frequência Cardíaca</p>
-                <p id="hrValue" class="text-4xl font-extrabold text-primary-red mt-2">75<span class="text-lg text-text-muted">bpm</span></p>
+                <p id="hrValue" class="text-4xl font-extrabold text-primary-red mt-2">--<span class="text-lg text-text-muted">bpm</span></p>
             </div>
             <div class="card p-4 rounded-xl text-center border-l-4 border-primary-blue">
                 <p id="spo2Label" class="text-sm text-text-muted">Saturação O₂</p>
-                <p id="spo2Value" class="text-4xl font-extrabold text-primary-blue mt-2">98<span class="text-lg text-text-muted">%</span></p>
+                <p id="spo2Value" class="text-4xl font-extrabold text-primary-blue mt-2">--<span class="text-lg text-text-muted">%</span></p>
             </div>
         </div>
 
@@ -283,24 +335,58 @@
     </div>
 </div>
 
+<!-- Modal de Pareamento (Escondido por Padrão) -->
+<div id="pairingModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3 class="text-xl font-bold mb-4 text-center text-primary-blue">Pareamento com Smartwatch</h3>
+        <p id="pairingStatusMessage" class="text-warning text-center mb-4">BUSCANDO DISPOSITIVOS...</p>
+        
+        <!-- Lista de Dispositivos (Vazio no início) -->
+        <div id="availableDevices" class="space-y-3 min-h-[60px]">
+            <!-- Ícone de busca animado -->
+            <div class="flex justify-center">
+                <svg class="w-8 h-8 animate-spin text-primary-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.836 2.582a8.97 8.97 0 01-16 0zM12 20a8 8 0 008-8h-2a6 6 0 01-12 0H4a8 8 0 008 8z"></path></svg>
+            </div>
+        </div>
+        
+        <button type="button" onclick="document.getElementById('pairingModal').classList.add('hidden')" class="w-full py-2 mt-4 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition duration-150">
+            Cancelar
+        </button>
+    </div>
+</div>
+
 <script>
     let contactCount = 1;
     let patientData = {}; // Variável para armazenar dados do paciente
+    let pairingTimer;
 
-    // Função para simular o erro de Login
+    // Função para simular o erro de Login ou sucesso
     function handleLoginAttempt() {
         const email = document.getElementById('email').value;
         const senha = document.getElementById('senha').value;
         const errorElement = document.getElementById('loginError');
 
-        // Simula a falha de login se os campos estiverem preenchidos (assumindo que o perfil não existe)
-        if (email && senha) {
+        // Se os campos estiverem vazios, usa a validação HTML5
+        if (!email || !senha) {
+            document.getElementById('loginForm').reportValidity();
+            return;
+        }
+
+        // SIMULAÇÃO DE LOGIN: Verifica se as credenciais digitadas correspondem às credenciais do patientData
+        
+        // Coleta os dados de acesso da tela de Cadastro (onde as credenciais seriam salvas)
+        const cadastradoEmail = document.getElementById('cadastroEmail').value || "ana@activesense.com"; // Default para teste inicial
+        const cadastradoSenha = document.getElementById('cadastroSenha').value || "123456"; // Default para teste inicial
+
+        if (email === cadastradoEmail && senha === cadastradoSenha) { 
+            // Se bater, simula o sucesso e carrega os dados que estão nos campos de cadastro
+            collectPatientData(); // Certifica que os dados atuais dos campos estão em patientData
+            updateProfileSummary(); // Atualiza o sumário com os dados atuais (se o login for bem-sucedido)
+            switchScreen('authScreen', 'profileSummaryScreen');
+        } else {
+            // Simula a falha de login (usuário não encontrado)
             errorElement.innerText = 'Usuário não encontrado. Por favor, utilize o botão "Cadastrar" para criar seu perfil.';
             errorElement.classList.remove('hidden');
-            // Mantém na tela de login, sugerindo o cadastro
-        } else {
-            // Se os campos estiverem vazios, apenas usa a validação HTML5
-            document.getElementById('loginForm').reportValidity();
         }
     }
 
@@ -309,7 +395,38 @@
     function switchScreen(currentId, nextId) {
         // Oculta a mensagem de erro ao trocar de tela
         document.getElementById('loginError').classList.add('hidden');
+        document.getElementById('cadastroSuccess').classList.add('hidden'); // Oculta sucesso de cadastro ao trocar
         
+        // Lógica: Se for para o Cadastro, limpa os campos de Acesso
+        if (nextId === 'dataEntryScreen') {
+            document.getElementById('cadastroEmail').value = '';
+            document.getElementById('cadastroSenha').value = '';
+            
+            // Também limpa o restante do formulário para o novo cadastro
+            document.getElementById('patientForm').reset();
+            // Remove contatos adicionais (exceto o contact-0)
+            const contactsList = document.getElementById('contactsList');
+            if (contactsList) {
+                 Array.from(contactsList.children).forEach(child => {
+                    // Remove todos os filhos EXCETO o primeiro contato (contact-0)
+                    if (child.id && child.id !== 'contact-0') {
+                        child.remove();
+                    }
+                });
+            }
+            contactCount = 1;
+        }
+        
+        // NOVO: Se o cadastro foi finalizado, vai para Login e mostra mensagem
+        if (currentId === 'dataEntryScreen' && nextId === 'authScreen') {
+            // Se vier do cadastro, mostra a mensagem de sucesso
+            document.getElementById('cadastroSuccess').classList.remove('hidden');
+            // Limpa os campos de login para forçar o novo login
+            document.getElementById('email').value = '';
+            document.getElementById('senha').value = '';
+        }
+
+
         if (currentId === 'dashboardScreen') {
              resetStatus();
         }
@@ -322,7 +439,7 @@
 
     // Função para adicionar novo contato de emergência (Chamada pelo botão '+')
     function addEmergencyContact() {
-        const container = document.getElementById('emergencyContactsContainer');
+        const container = document.getElementById('contactsList'); // Usar o container correto
         const newContactHtml = `
             <div id="contact-${contactCount}" class="p-4 card rounded-lg space-y-2 border-l-4 border-primary-blue mt-4">
                 <div class="text-right">
@@ -346,6 +463,10 @@
     // Função para coletar dados do paciente e contatos
     function collectPatientData() {
         patientData = {
+            // Campos de Acesso
+            emailAcesso: document.getElementById('cadastroEmail').value || '[Não informado]',
+            senhaAcesso: document.getElementById('cadastroSenha').value || '[Não informado]',
+
             nome: document.getElementById('nome').value || '[Não informado]',
             idade: document.getElementById('idade').value || '[Não informado]',
             altura: document.getElementById('altura').value || '[Não informado]',
@@ -365,7 +486,7 @@
             contatos: []
         };
 
-        const contactDivs = document.querySelectorAll('#emergencyContactsContainer > div[id^="contact-"]');
+        const contactDivs = document.querySelectorAll('#contactsList > div[id^="contact-"]'); // Corrigido para buscar no container de contatos
         contactDivs.forEach((div) => {
             
             // Corrige o ID prefixado para os elementos dinâmicos
@@ -440,43 +561,80 @@
         }
     }
     
-    // NOVA FUNÇÃO: Gerencia o fluxo de pareamento e monitoramento
-    function startMonitoringFlow() {
-        switchScreen('profileSummaryScreen', 'dashboardScreen');
+    // NOVO: Função para o botão 'Salvar Informações' no Cadastro
+    function validateAndSwitchCadastro() {
+        const form = document.querySelector(`#dataEntryScreen form`);
+        if (form.checkValidity()) {
+            collectPatientData();
+            // Após salvar no cadastro, volta para o Login
+            switchScreen('dataEntryScreen', 'authScreen'); 
+        } else {
+            form.reportValidity();
+        }
+    }
+    
+    // NOVA FUNÇÃO: Gerencia o fluxo de pareamento e monitoramento (Abre o modal)
+    function startPairingSimulation() {
+        // Exibe o modal de pareamento
+        document.getElementById('pairingModal').classList.remove('hidden');
         
-        const statusMsg = document.getElementById('syncStatusMessage');
-        const syncIcon = document.getElementById('syncIcon');
-        const hrElement = document.getElementById('hrValue');
-        const spo2Element = document.getElementById('spo2Value');
+        const statusMsg = document.getElementById('pairingStatusMessage');
+        const deviceList = document.getElementById('availableDevices');
 
-        // 1. Inicia a Busca (Imediatamente)
-        statusMsg.innerText = 'BUSCANDO...';
-        syncIcon.classList.remove('text-danger', 'text-primary-green');
-        syncIcon.classList.add('text-primary-blue', 'animate-sync-spin');
+        statusMsg.innerText = 'BUSCANDO DISPOSITIVOS...';
+        deviceList.innerHTML = '';
         
-        // Limpa métricas até conectar
-        hrElement.innerText = '--';
-        spo2Element.innerText = '--';
+        // Ícone de busca animado
+        deviceList.innerHTML = `
+            <div class="flex justify-center">
+                <svg class="w-8 h-8 animate-spin text-primary-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.836 2.582a8.97 8.97 0 01-16 0zM12 20a8 8 0 008-8h-2a6 6 0 01-12 0H4a8 8 0 008 8z"></path></svg>
+            </div>
+        `;
 
-        // 2. Simula o Pareamento (Após 1.5s)
+        // Simula a busca (Após 2s, encontra o dispositivo)
+        pairingTimer = setTimeout(() => {
+            statusMsg.innerText = 'DISPOSITIVO ENCONTRADO! Clique para parear:';
+            // Adiciona o dispositivo encontrado com evento onclick para parear
+            deviceList.innerHTML = `
+                <div onclick="initiatePairing('ActiveSense Watch X1')" class="card p-4 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-600 transition duration-150 border-l-4 border-primary-green">
+                    <span class="font-bold text-lg">ActiveSense Watch X1</span>
+                    <svg class="w-6 h-6 text-primary-green" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+            `;
+        }, 2000);
+    }
+    
+    // Nova Função: Processa o clique no dispositivo e navega para o Dashboard
+    function initiatePairing(deviceName) {
+        clearTimeout(pairingTimer); // Para a simulação de busca
+        const statusMsg = document.getElementById('pairingStatusMessage');
+        const deviceList = document.getElementById('availableDevices');
+        
+        statusMsg.innerText = `PAREANDO com ${deviceName}...`;
+        deviceList.innerHTML = '';
+        
+        // Simula o pareamento (2s)
         setTimeout(() => {
-            statusMsg.innerText = 'PAREANDO...';
-        }, 1500);
-
-        // 3. Simula a Conexão (Após 3.5s)
-        setTimeout(() => {
-            syncIcon.classList.remove('animate-sync-spin');
+            // Fecha o modal e navega para o Dashboard
+            document.getElementById('pairingModal').classList.add('hidden');
+            switchScreen('profileSummaryScreen', 'dashboardScreen');
+            
+            // Atualiza o status do Dashboard para CONECTADO
+            const dashboardStatusMsg = document.getElementById('syncStatusMessage');
+            const syncIcon = document.getElementById('syncIcon');
+            
+            syncIcon.classList.remove('animate-sync-spin', 'text-primary-blue');
             syncIcon.classList.add('text-primary-green');
             syncIcon.innerHTML = `<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />`; // Ícone de check
-            statusMsg.innerText = 'CONECTADO';
+            dashboardStatusMsg.innerText = 'CONECTADO';
             
             // Inicia o envio de métricas simuladas
-            hrElement.innerText = '75';
-            spo2Element.innerText = '98';
+            document.getElementById('hrValue').innerText = '75';
+            document.getElementById('spo2Value').innerText = '98';
 
-            updateDashboardData(); // Atualiza o relatório de emergência com os dados do paciente
+            updateDashboardData(); // Garante que os dados do paciente estejam no relatório
             
-        }, 3500);
+        }, 2000);
     }
 
 
@@ -488,9 +646,12 @@
         const convenio = patientData.convenioMedico;
         const patologias = patientData.patologiasPrevias;
         const alergias = patientData.alergias;
+        // ENDEREÇO FIXO DA UNINGÁ
+        const localizacao = 'Centro Universitáro Ingá, Rod. PR 317, 6114 Parque Industrial 200, Maringá - PR, 87035-510 (GPS)'; 
+
 
         // Atualiza Relatório de Emergência
-        const reportText = `Hipótese: Hipoglicemia grave e inconsciência. Sinais vitais CRÍTICOS (FC 38 bpm, SpO₂ 86%). Dados do Paciente: ${nome} (Diabetes ${diabetes}, Insulina: ${insulina}, Convênio: ${convenio}). Patologias Prévias: ${patologias}. Alergias: ${alergias}. Localização: Rua Exemplo, 123.`;
+        const reportText = `Hipótese: Hipoglicemia grave e inconsciência. Sinais vitais CRÍTICOS (FC 38 bpm, SpO₂ 86%). Dados do Paciente: ${nome} (Diabetes ${diabetes}, Insulina: ${insulina}, Convênio: ${convenio}). Patologias Prévias: ${patologias}. Alergias: ${alergias}. Localização: ${localizacao}.`;
         document.getElementById('emergencyReport').innerText = reportText;
 
         // Atualiza Contatos Notificados
@@ -556,12 +717,12 @@
         document.getElementById('resetBtn').classList.add('screen');
         
         // Reseta o status da sincronização para o padrão
-        const statusMsg = document.getElementById('syncStatusMessage');
+        const syncStatusMsg = document.getElementById('syncStatusMessage');
         const syncIcon = document.getElementById('syncIcon');
         syncIcon.classList.remove('animate-sync-spin', 'text-primary-green', 'text-danger');
         syncIcon.classList.add('text-primary-blue');
         syncIcon.innerHTML = `<path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0110.802 7.292c-.174.407-.384.787-.624 1.144A1 1 0 0112 15h-3a1 1 0 01-.707-1.707l1.414-1.414a1 1 0 011.414 0c-.348-.348-.653-.695-.918-1.05a5.002 5.002 0 00-7.792-5.746l-.106.318A1 1 0 015 6V3a1 1 0 011-1h-2zM15 17a1 1 0 00-1-1v-2.101a7.002 7.002 0 00-10.802-7.292c.174-.407.384-.787.624-1.144A1 1 0 008 5h3a1 1 0 00.707 1.707l-1.414 1.414a1 1 0 00-1.414 0c-.348-.348-.653-.695-.918-1.05a5.002 5.002 0 017.792 5.746l.106-.318A1 1 0 0015 14v3a1 1 0 001-1z" clip-rule="evenodd" />`; // Ícone de sincronização
-        statusMsg.innerText = 'BUSCANDO...';
+        syncStatusMsg.innerText = 'BUSCANDO...';
         
         // 5. Navegar de volta ao Login
         switchScreen('dashboardScreen', 'authScreen');
